@@ -1,52 +1,112 @@
 extern crate core;
+
 use inputbot::{KeybdKey::*, MouseButton::*, *};
 use std::os::raw::c_char;
-
 use std::{thread::sleep, time::Duration};
+use std::io::Cursor;
 
-pub fn main() {
-    let discovered: char = '□';
-    let cursor: char = '⛶';
-    let undiscovered: char = '■';
-    let flag: char = '◩';
-    //  let mut cursor1:char = '⬚';
+const discovered: char = '□';
+const cursor: char = '⛶';
+const undiscovered: char = '■';
+const flag: char = '◩';
+static mut cursor_x: usize = 0;
+static mut cursor_y: usize = 0;
+static mut course: [[char; 30]; 16] = [[undiscovered;30];16];
 
 
-    let mut course: [[char; 30]; 16] = [['a'; 30]; 16];
-
+fn PrettyPrint(courses: [[char; 30]; 16], cx: usize, cy: usize) {
     for x in 0..16 {
         for y in 0..30 {
-            course[x][y] = undiscovered;
-            course[5][5] = cursor;
-            print!("  {}", course[x][y]);
+            if cx == x && cy == y {
+                print!("  {}", cursor);
+            } else {
+                print!("  {}", courses[x][y]);
+            }
         }
         println!();
     }
+}
 
+unsafe fn SafeCallPrettyPrint(coursea: [[char; 30]; 16], x: usize, y: usize) {
+    PrettyPrint(coursea, x, y);
+}
 
+unsafe fn addX() {
+    if cursor_x != 15 {
+        cursor_x = cursor_x + 1;
+    }
+}
 
-    // Rapidfire for videogames.
+unsafe fn subX() {
+    if cursor_x != 0 {
+        cursor_x = cursor_x - 1;
+    }
+}
 
+unsafe fn addY() {
+    if cursor_y != 29 {
+        cursor_y = cursor_y + 1;
+    }
+}
 
-    // Create a handler to trigger on any and all keyboard events.
-    WKey.bind(|| println!("Up"));
-    SKey.bind(|| println!("Down"));
-    DKey.bind(|| println!("Right"));
-    AKey.bind(|| println!("Left"));
-    QKey.bind(|| MouseCursor::move_rel(10, 10));
-    handle_input_events();
-    loop {
+unsafe fn subY() {
+    if cursor_y != 0 {
+        cursor_y = cursor_y - 1;
+    }
+}
 
-        if AKey.is_toggled() {
-
-            print!("done");
-            break;
-        }
+unsafe fn setFlag() {
+    if course[cursor_x][cursor_y] == undiscovered{
+        course[cursor_x][cursor_y]= flag;}
+    else if course[cursor_x][cursor_y] == flag{
+        course[cursor_x][cursor_y] = undiscovered;
     }
 
 
+}
+/*
+  fn generateCourse() -> [[char; 30]; 16] {
+    let mut courseTemp: [[char; 30]; 16]=[[undiscovered;30];16] ;
+    for x in 0..16 {
+        for y in 0..30 {
+            courseTemp[x][y] = undiscovered;
 
-    // Call this to start listening for bound inputs.
+            print!("  {}", courseTemp[x][y]);
+        }
+        println!();
+    }
+    courseTemp[5][0] = '5';
+    return courseTemp;
+}*/
+
+fn main() {
+
+    //  let mut cursor1:char = '⬚';
+
+    //unsafe { course = generateCourse(); }
+
+
+
+    unsafe {
+        WKey.bind(move || {
+            subX();
+            PrettyPrint(course, cursor_x, cursor_y)
+        });
+        SKey.bind(move || {
+            addX();
+            SafeCallPrettyPrint(course, cursor_x, cursor_y)
+        });
+        DKey.bind(move || {
+            addY();
+            SafeCallPrettyPrint(course, cursor_x, cursor_y)
+        });
+        AKey.bind(move || {
+            subY();
+            SafeCallPrettyPrint(course, cursor_x, cursor_y)
+        });
+        EnterKey.bind(move|| { setFlag(); PrettyPrint(course,cursor_x,cursor_y) } );
+        QKey.bind(|| MouseCursor::move_rel(10, 10));
+    }
     handle_input_events();
-
+    println!("HERE");
 }
